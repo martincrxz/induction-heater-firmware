@@ -34,5 +34,6 @@ void send_packet(msg_type_t type, uint8_t data0, uint8_t data1, uint8_t data2, u
 uint32_t rx_handler(void *pvCBData, uint32_t ui32Event,uint32_t ui32MsgValue, void *pvMsgData);
 uint32_t tx_handler(void *pvi32CBData, uint32_t ui32Event,uint32_t ui32MsgValue, void *pvMsgData);
 uint32_t control_handler(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue, void *pvMsgData);
+uint8_t crc_checksum(uint8_t *, uint8_t);
 
 #endif /* USB_H_ */

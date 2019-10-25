@@ -60,7 +60,7 @@ void spi_thermocouple_init() {
     ROM_GPIOPadConfigSet(GPIO_PORTA_BASE, GPIO_PIN_7, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
     ROM_GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_7, GPIO_FALLING_EDGE);
 
-    // CLear the variables just in case
+    // Clear the variables just in case
     spi_thermocouple_clear();
 
     // Register the handler and enable the interrupt
@@ -217,5 +217,27 @@ void spi_thermocouple_read_tc() {
     ssi0_rx_data[0] &= 0xFF;
     ssi0_rx_data[1] &= 0xFF;
     ssi0_rx_data[2] &= 0xFF;
+
+}
+
+void set_thermocouple_type(max31856_thermocoupletype_t type){
+
+    static uint32_t cr1_aux = MAX31856_CR1_REG << 8;
+
+    // Ask for CR1 register
+    ROM_SSIDataPut(SSI0_BASE, cr1_aux);
+    while(ROM_SSIBusy(SSI0_BASE))
+    {
+    }
+
+    ROM_SSIDataGet(SSI0_BASE, &cr1_aux);
+
+    // Clear type bits, set corresponding bits and set write bit
+    cr1_aux = (cr1_aux & 0b0000) | type | (MAX31856_REG_WRITE << 8);
+
+    ROM_SSIDataPut(SSI0_BASE, cr1_aux);
+    while(ROM_SSIBusy(SSI0_BASE))
+    {
+    }
 
 }

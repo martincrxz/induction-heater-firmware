@@ -195,11 +195,25 @@ void process_packet(uint8_t packet[PACKET_SIZE]) {
 }
 
 void send_packet(msg_type_t type, uint8_t data0, uint8_t data1, uint8_t data2, uint8_t data3){
-    uint8_t crc = 0x00;
     uint8_t packet[8] = {0x7E, type, data0, data1, data2, data3, 0x00};
-    // TODO: Calculate CRC
-    packet[7] = crc;
-    USBBufferWrite(&g_sTxBuffer,packet,8);
+    uint8_t crc = crc_checksum(packet, PACKET_SIZE-1);
+    USBBufferWrite(&g_sTxBuffer,packet,1);
+    USBBufferWrite(&g_sTxBuffer,packet+1,1);
+    USBBufferWrite(&g_sTxBuffer,packet+2,1);
+    USBBufferWrite(&g_sTxBuffer,packet+3,1);
+    USBBufferWrite(&g_sTxBuffer,packet+4,1);
+    USBBufferWrite(&g_sTxBuffer,packet+5,1);
+    USBBufferWrite(&g_sTxBuffer,packet+6,1);
+    USBBufferWrite(&g_sTxBuffer,&crc,1);
 }
 
+uint8_t crc_checksum(uint8_t *data, uint8_t size) {
+    int16_t i;
+    uint8_t chk = 0xFF;
+
+    for (i=0; i < size; i++)
+        chk -= data[i];
+
+    return chk;
+}
 
