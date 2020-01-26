@@ -34,6 +34,7 @@
 #include "usb_structs.h"
 #include "usb.h"
 #include "spi_pot.h"
+#include "spi_thermocouple.h"
 
 static uint8_t packet_count = 0;
 static reading_status_t reading_status = WAITING;
@@ -169,8 +170,10 @@ uint32_t rx_handler(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue, v
 void process_packet(uint8_t packet[PACKET_SIZE]) {
     switch(packet[1]){ // packet[1] is message type
         case THERMOCOUPLE_CONFIGURATION:
-            // TODO: Write the MAX31856 configuration registers
-            send_packet(THERMOCOUPLE_CONFIGURATION_ACKNOWLEDGE, 0x00, 0x00, 0x00, 0x00);
+            set_thermocouple_type((max31856_thermocoupletype_t)packet[CR1_INDEX]);
+            // TODO: Ask for configuration registers to MAX31856 and then send that to the computer
+            // I'm sending the data received from the computer back because I've not the MAX31856 to test
+            send_packet(THERMOCOUPLE_CONFIGURATION_ACKNOWLEDGE, 0x00, packet[CR1_INDEX], 0x00, 0x00);
             break;
         case SET_POWER:
             set_power(packet[2]);

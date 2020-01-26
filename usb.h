@@ -11,6 +11,8 @@
 #define PACKETS_SEPARATOR 0x7E
 #define PACKET_SIZE 0x08
 
+#define CR1_INDEX 3
+
 typedef enum {WAITING, READING} reading_status_t;
 typedef enum {
     TEMPERATURE_READING = 0x10, // to computer

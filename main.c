@@ -52,7 +52,7 @@ int main(void)
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
-    ui32Period = SysCtlClockGet() / 10;
+    ui32Period = SysCtlClockGet() / 5;
     TimerLoadSet(TIMER0_BASE, TIMER_A, ui32Period -1);
     IntEnable(INT_TIMER0A);
     TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
@@ -83,10 +83,10 @@ void Timer0IntHandler(void)
     // Clear the timer interrupt
     TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 
-    if(count == 0x10)
+    if(count == 0xff)
         count = 0x00;
 
-    send_packet(TEMPERATURE_READING, 0x00, count, 0x00, 0x00);
+    send_packet(TEMPERATURE_READING, 0x80, count, 0x00, 0x00);
 
     count++;
 }

@@ -67,6 +67,25 @@ void spi_thermocouple_init() {
     GPIOIntRegister(GPIO_PORTA_BASE, spi_thermocouple_int_handler);
     GPIOIntEnable(GPIO_PORTA_BASE, GPIO_INT_PIN_6 | GPIO_INT_PIN_7);
 
+    //Set default configuration
+    ssi0_tx_data[0] = (MAX31856_CR0_REG | MAX31856_REG_WRITE) << 8;
+    ssi0_tx_data[0] |= 0x05;
+    ssi0_tx_data[1] = (MAX31856_CR1_REG | MAX31856_REG_WRITE) << 8;
+    ssi0_tx_data[1] |= 0x03;
+
+    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[0]);
+    while(ROM_SSIBusy(SSI0_BASE))
+    {
+    }
+
+    DELAY_MS(SPI_DATA_DELAY);
+
+    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[1]);
+    while(ROM_SSIBusy(SSI0_BASE))
+    {
+    }
+
+    DELAY_MS(SPI_DATA_DELAY);
 }
 
 void spi_thermocouple_clear() {
@@ -126,6 +145,7 @@ void spi_thermocouple_read_flt() {
     }
 
     // A delay is maybe needed here
+    DELAY_MS(SPI_DATA_DELAY);
 
     // Receive SR register, only the first 8 bits will have valid data
     ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[0]);
@@ -150,6 +170,7 @@ void spi_thermocouple_read_cj() {
     }
 
     // A delay is maybe needed here
+    DELAY_MS(SPI_DATA_DELAY);
 
     // Receive CJTH register, only the first 8 bits will have valid data
     ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[0]);
@@ -161,6 +182,7 @@ void spi_thermocouple_read_cj() {
     }
 
     // A delay is maybe needed here
+    DELAY_MS(SPI_DATA_DELAY);
 
     // Receive CJTL register, only the first 8 bits will have valid data
     ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[1]);
@@ -168,7 +190,6 @@ void spi_thermocouple_read_cj() {
     // Clear everything but the first 8 bits, just in case
     ssi0_rx_data[0] &= 0xFF;
     ssi0_rx_data[1] &= 0xFF;
-
 }
 
 // Temperature conversion reading routine
@@ -187,6 +208,7 @@ void spi_thermocouple_read_tc() {
     }
 
     // A delay is maybe needed here
+    DELAY_MS(SPI_DATA_DELAY);
 
     // Receive LTCBH register, only the first 8 bits will have valid data
     ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[0]);
@@ -198,6 +220,7 @@ void spi_thermocouple_read_tc() {
     }
 
     // A delay is maybe needed here
+    DELAY_MS(SPI_DATA_DELAY);
 
     // Receive LTCBM register, only the first 8 bits will have valid data
     ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[1]);
@@ -209,6 +232,7 @@ void spi_thermocouple_read_tc() {
     }
 
     // A delay is maybe needed here
+    DELAY_MS(SPI_DATA_DELAY);
 
     // Receive LTCBL register, only the first 8 bits will have valid data
     ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[2]);
@@ -222,20 +246,22 @@ void spi_thermocouple_read_tc() {
 
 void set_thermocouple_type(max31856_thermocoupletype_t type){
 
-    static uint32_t cr1_aux = MAX31856_CR1_REG << 8;
+    ssi0_tx_data[0] = MAX31856_CR1_REG << 8;
 
     // Ask for CR1 register
-    ROM_SSIDataPut(SSI0_BASE, cr1_aux);
+    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[0]);
     while(ROM_SSIBusy(SSI0_BASE))
     {
     }
 
-    ROM_SSIDataGet(SSI0_BASE, &cr1_aux);
+    DELAY_MS(SPI_DATA_DELAY);
+
+    ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[0]);
 
     // Clear type bits, set corresponding bits and set write bit
-    cr1_aux = (cr1_aux & 0b0000) | type | (MAX31856_REG_WRITE << 8);
+    ssi0_tx_data[0] = (ssi0_tx_data[0] & 0b0000) | type | (MAX31856_REG_WRITE << 8);
 
-    ROM_SSIDataPut(SSI0_BASE, cr1_aux);
+    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[0]);
     while(ROM_SSIBusy(SSI0_BASE))
     {
     }
