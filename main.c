@@ -34,14 +34,14 @@
 #include "spi_thermocouple.h"
 #include "spi_pot.h"
 
-void Timer0IntHandler(void);
+//void Timer0IntHandler(void);
 
-static uint8_t count = 0x00;
+//static uint8_t count = 0x00;
 
 int main(void)
 {
 
-    uint32_t ui32Period;
+    //uint32_t ui32Period;
 
     // This enable floating point operations during interrupts, not sure if it's necessary
     ROM_FPULazyStackingEnable();
@@ -50,6 +50,8 @@ int main(void)
     // By default there's a division by 2 and we set another by 4, so it's 50 MHz
     ROM_SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
 
+
+    /*
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
     ui32Period = SysCtlClockGet() / 5;
@@ -57,6 +59,7 @@ int main(void)
     IntEnable(INT_TIMER0A);
     TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
     TimerEnable(TIMER0_BASE, TIMER_A);
+    */
 
     // Enable PORTF peripheral for led usage
     ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
@@ -78,6 +81,7 @@ int main(void)
     }
 }
 
+/*
 void Timer0IntHandler(void)
 {
     // Clear the timer interrupt
@@ -90,3 +94,4 @@ void Timer0IntHandler(void)
 
     count++;
 }
+*/
