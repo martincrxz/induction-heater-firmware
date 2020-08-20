@@ -90,6 +90,8 @@ uint32_t control_handler(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgVal
             break;
 
         case USB_EVENT_SUSPEND:
+            break;
+
         case USB_EVENT_RESUME:
             break;
 
@@ -151,14 +153,10 @@ uint32_t rx_handler(void *pvCBData, uint32_t ui32Event, uint32_t ui32MsgValue, v
         }
 
         case USB_EVENT_DATA_REMAINING:
-        {
-            return(0);
-        }
+            break;
 
         case USB_EVENT_REQUEST_BUFFER:
-        {
-            return(0);
-        }
+            break;
 
         default:
             break;

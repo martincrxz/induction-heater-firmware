@@ -115,7 +115,7 @@ void spi_thermocouple_int_handler() {
 
     if(ui32Status & GPIO_INT_PIN_6){
         // Handle fault
-        void spi_thermocouple_read_flt();
+        spi_thermocouple_read_flt();
         // Send fault status register via USB to the computer
         // See MAX31856 datasheet to parse in PC application
         send_packet(THERMOCOUPLE_FAULT, ssi0_rx_data[0], 0x00, 0x00, 0x00);
@@ -123,10 +123,10 @@ void spi_thermocouple_int_handler() {
 
     if(ui32Status & GPIO_INT_PIN_7){
         // Handle conversion ready
-        void spi_thermocouple_read_cj();
+        spi_thermocouple_read_cj();
         // Send cold junction reading via USB to the computer
         send_packet(COLD_JUNCTION_READING, ssi0_rx_data[0], ssi0_rx_data[1], 0x00, 0x00);
-        void spi_thermocouple_read_tc();
+        spi_thermocouple_read_tc();
         // Send temperature conversion reading via USB to the computer
         send_packet(TEMPERATURE_READING, ssi0_rx_data[0], ssi0_rx_data[1], ssi0_rx_data[2], 0x00);
     }
@@ -154,6 +154,7 @@ void spi_thermocouple_read_flt() {
 
     ssi0_rx_data[0] &= 0xFF;
     ssi0_rx_data[1] &= 0x00;
+    ssi0_rx_data[2] &= 0x00;
 
 }
 
@@ -192,6 +193,7 @@ void spi_thermocouple_read_cj() {
     // Clear everything but the first 8 bits, just in case
     ssi0_rx_data[0] &= 0xFF;
     ssi0_rx_data[1] &= 0xFF;
+    ssi0_rx_data[2] &= 0x00;
 }
 
 // Temperature conversion reading routine
