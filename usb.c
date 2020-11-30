@@ -180,10 +180,12 @@ void process_packet(uint8_t packet[PACKET_SIZE]) {
 #endif
         case SET_AUTOMATIC_CONTROL:
             // TODO: Set the automatic control ON (Through relay control)
+            ROM_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_4, GPIO_PIN_4);
             send_packet(AUTOMATIC_CONTROL_ACKNOWLEDGE, 0x00, 0x00, 0x00, 0x00);
             break;
         case SET_MANUAL_CONTROL:
             // TODO: Set the automatic control OFF (Through relay control)
+            ROM_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_4, 0);
             send_packet(MANUAL_CONTROL_ACKNOWLEDGE, 0x00, 0x00, 0x00, 0x00);
             break;
 #ifdef ENABLE_POWER_CONTROL

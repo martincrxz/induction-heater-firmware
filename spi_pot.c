@@ -20,6 +20,17 @@
 
 #include "spi_pot.h"
 
+void auto_manual_mode_pins_init() {
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
+    while(!ROM_SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOC))
+    {
+    }
+    ROM_GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, GPIO_PIN_4);
+    ROM_GPIOPadConfigSet(GPIO_PORTC_BASE, GPIO_PIN_4, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPD);
+    ROM_SysCtlDelay(3);
+    ROM_GPIOPinWrite(GPIO_PORTC_BASE, GPIO_PIN_4, 0);
+}
+
 void spi_pot_init() {
     // Enable the peripherals used by SSI2
     ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
@@ -45,16 +56,12 @@ void spi_pot_init() {
     while(ROM_SSIBusy(SSI2_BASE))
     {
     }
-
     // A delay is maybe needed here
-
 }
 
 void set_power(uint8_t power) {
-
     ROM_SSIDataPut(SSI2_BASE, power);
     while(ROM_SSIBusy(SSI2_BASE))
     {
     }
-
 }
