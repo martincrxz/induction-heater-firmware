@@ -23,6 +23,8 @@
 //*****************************************************************************
 
 #include <stdint.h>
+#include "macros.h"
+#include "usb.h"
 
 //*****************************************************************************
 //
@@ -55,7 +57,13 @@ extern uint32_t __STACK_TOP;
 //
 //*****************************************************************************
 extern void USB0DeviceIntHandler(void);
-extern void Timer0IntHandler(void);
+#ifdef ENABLE_TEST
+extern void timer_0A_test_handler(void);
+#endif
+extern void uDMA_error_handler(void);
+extern void timer_capture_int_handler(void);
+extern void send_freq_timer_int_handler(void);
+extern void sample_seq_int_handler(void);
 
 //*****************************************************************************
 //
@@ -98,14 +106,18 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // PWM Generator 1
     IntDefaultHandler,                      // PWM Generator 2
     IntDefaultHandler,                      // Quadrature Encoder 0
-    IntDefaultHandler,                      // ADC Sequence 0
+    sample_seq_int_handler,                 // ADC Sequence 0
     IntDefaultHandler,                      // ADC Sequence 1
     IntDefaultHandler,                      // ADC Sequence 2
     IntDefaultHandler,                      // ADC Sequence 3
     IntDefaultHandler,                      // Watchdog timer
-    IntDefaultHandler,                       // Timer 0 subtimer A
+#ifdef ENABLE_TEST
+    timer_0A_test_handler,                  // Timer 0 subtimer A
+#else
+    IntDefaultHandler,                      // Timer 0 subtimer A
+#endif
     IntDefaultHandler,                      // Timer 0 subtimer B
-    IntDefaultHandler,                      // Timer 1 subtimer A
+    send_freq_timer_int_handler,            // Timer 1 subtimer A
     IntDefaultHandler,                      // Timer 1 subtimer B
     IntDefaultHandler,                      // Timer 2 subtimer A
     IntDefaultHandler,                      // Timer 2 subtimer B
@@ -131,7 +143,7 @@ void (* const g_pfnVectors[])(void) =
     USB0DeviceIntHandler,                   // USB0
     IntDefaultHandler,                      // PWM Generator 3
     IntDefaultHandler,                      // uDMA Software Transfer
-    IntDefaultHandler,                      // uDMA Error
+    uDMA_error_handler,                     // uDMA Error
     IntDefaultHandler,                      // ADC1 Sequence 0
     IntDefaultHandler,                      // ADC1 Sequence 1
     IntDefaultHandler,                      // ADC1 Sequence 2
@@ -180,7 +192,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // Timer 5 subtimer B
     IntDefaultHandler,                      // Wide Timer 0 subtimer A
     IntDefaultHandler,                      // Wide Timer 0 subtimer B
-    IntDefaultHandler,                      // Wide Timer 1 subtimer A
+    timer_capture_int_handler,              // Wide Timer 1 subtimer A
     IntDefaultHandler,                      // Wide Timer 1 subtimer B
     IntDefaultHandler,                      // Wide Timer 2 subtimer A
     IntDefaultHandler,                      // Wide Timer 2 subtimer B
@@ -274,6 +286,7 @@ NmiSR(void)
 static void
 FaultISR(void)
 {
+    send_packet(0x99, 0, 0, 0, 0);
     //
     // Enter an infinite loop.
     //

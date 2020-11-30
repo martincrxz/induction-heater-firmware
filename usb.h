@@ -26,6 +26,8 @@ typedef enum {
     AUTOMATIC_CONTROL_ACKNOWLEDGE = 0x31, // to computer
     SET_MANUAL_CONTROL = 0x32, // to uC
     MANUAL_CONTROL_ACKNOWLEDGE = 0x33, // to computer
+    CURRENT_RMS_READING = 0x40, // to computer
+    CURRENT_FREQUENCY_READING = 0x41, // to computer
     SHUTDOWN_MESSAGE = 0x50, // to uC
     SHUTDOWN_ACKNOWLEDGE = 0x51 // to computer
 } msg_type_t;

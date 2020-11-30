@@ -1,0 +1,10 @@
+#ifndef MACROS_H_
+#define MACROS_H_
+
+#define ENABLE_THERMOCOUPLE
+#define ENABLE_POWER_CONTROL
+#define ENABLE_CURRENT_MEASUREMENT
+//#define ENABLE_TEST
+//#define ENABLE_LED
+
+#endif // MACROS_H_

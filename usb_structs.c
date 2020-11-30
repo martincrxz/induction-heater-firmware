@@ -19,6 +19,10 @@
 #include "usb_structs.h"
 #include "usb.h"
 
+static tUSBBuffer sTxBuffer;
+static tUSBBuffer sRxBuffer;
+static tUSBDCDCDevice sCDCDevice;
+
 //*****************************************************************************
 //
 // The languages supported by this device.
@@ -129,18 +133,18 @@ const uint8_t * const g_ppui8StringDescriptors[] =
 // function and the callback data set to our CDC instance structure.
 //
 //*****************************************************************************
-tUSBDCDCDevice g_sCDCDevice =
+static tUSBDCDCDevice sCDCDevice =
 {
     USB_VID_TI_1CBE,
     USB_PID_SERIAL,
     0,
     USB_CONF_ATTR_SELF_PWR,
     control_handler,
-    (void *)&g_sCDCDevice,
+    (void *)&sCDCDevice,
     USBBufferEventCallback,
-    (void *)&g_sRxBuffer,
+    (void *)&sRxBuffer,
     USBBufferEventCallback,
-    (void *)&g_sTxBuffer,
+    (void *)&sTxBuffer,
     g_ppui8StringDescriptors,
     NUM_STRING_DESCRIPTORS
 };
@@ -151,16 +155,16 @@ tUSBDCDCDevice g_sCDCDevice =
 //
 //*****************************************************************************
 uint8_t g_pui8USBRxBuffer[USB_BUFFER_SIZE];
-tUSBBuffer g_sRxBuffer =
+static tUSBBuffer sRxBuffer =
 {
     false,                          // This is a receive buffer.
-    rx_handler,                      // pfnCallback
-    (void *)&g_sCDCDevice,          // Callback data is our device pointer.
+    rx_handler,                     // pfnCallback
+    (void *)&sCDCDevice,            // Callback data is our device pointer.
     USBDCDCPacketRead,              // pfnTransfer
     USBDCDCRxPacketAvailable,       // pfnAvailable
-    (void *)&g_sCDCDevice,          // pvHandle
+    (void *)&sCDCDevice,            // pvHandle
     g_pui8USBRxBuffer,              // pui8Buffer
-    USB_BUFFER_SIZE,               // ui32BufferSize
+    USB_BUFFER_SIZE,                // ui32BufferSize
 };
 
 //*****************************************************************************
@@ -169,14 +173,26 @@ tUSBBuffer g_sRxBuffer =
 //
 //*****************************************************************************
 uint8_t g_pui8USBTxBuffer[USB_BUFFER_SIZE];
-tUSBBuffer g_sTxBuffer =
+static tUSBBuffer sTxBuffer =
 {
     true,                           // This is a transmit buffer.
-    tx_handler,                      // pfnCallback
-    (void *)&g_sCDCDevice,          // Callback data is our device pointer.
+    tx_handler,                     // pfnCallback
+    (void *)&sCDCDevice,            // Callback data is our device pointer.
     USBDCDCPacketWrite,             // pfnTransfer
     USBDCDCTxPacketAvailable,       // pfnAvailable
-    (void *)&g_sCDCDevice,          // pvHandle
+    (void *)&sCDCDevice,            // pvHandle
     g_pui8USBTxBuffer,              // pui8Buffer
-    USB_BUFFER_SIZE,               // ui32BufferSize
+    USB_BUFFER_SIZE,                // ui32BufferSize
 };
+
+tUSBBuffer* get_tx_buffer() {
+    return &sTxBuffer;
+}
+
+tUSBBuffer* get_rx_buffer() {
+    return &sRxBuffer;
+}
+
+tUSBDCDCDevice* get_cdc_device() {
+    return &sCDCDevice;
+}

@@ -10,10 +10,8 @@
 
 #define USB_BUFFER_SIZE 256
 
-extern tUSBBuffer g_sTxBuffer;
-extern tUSBBuffer g_sRxBuffer;
-extern tUSBDCDCDevice g_sCDCDevice;
-extern uint8_t g_pui8USBTxBuffer[];
-extern uint8_t g_pui8USBRxBuffer[];
+tUSBBuffer* get_tx_buffer();
+tUSBBuffer* get_rx_buffer();
+tUSBDCDCDevice* get_cdc_device();
 
 #endif /* USB_STRUCTS_H_ */
