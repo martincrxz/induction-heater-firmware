@@ -19,7 +19,7 @@
 #include "freq.h"
 
 static uint32_t captureLastValue = 0;
-static uint32_t count = 2500;
+static uint32_t count = 0;
 static bool shouldSendFreq = false;
 
 void timer_capture_init(){

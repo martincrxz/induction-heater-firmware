@@ -10,6 +10,7 @@
 
 #define ADC_SAMPLE_BUF_SIZE 512
 #define ADC_VOLTAGE_STEP 0.000813187
+#define ADC_TIMER_FREQ 400E3
 
 typedef enum{
     EMPTY,

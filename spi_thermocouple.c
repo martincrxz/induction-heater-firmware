@@ -71,7 +71,7 @@ void spi_thermocouple_init() {
 
     //Set default configuration
     ssi0_tx_data[0] = (MAX31856_CR0_REG | MAX31856_REG_WRITE) << 8;
-    ssi0_tx_data[0] |= 0x05;
+    ssi0_tx_data[0] |= 0x81;
     ssi0_tx_data[1] = (MAX31856_CR1_REG | MAX31856_REG_WRITE) << 8;
     ssi0_tx_data[1] |= 0x03;
 

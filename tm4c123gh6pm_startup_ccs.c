@@ -64,6 +64,7 @@ extern void uDMA_error_handler(void);
 extern void timer_capture_int_handler(void);
 extern void send_freq_timer_int_handler(void);
 extern void sample_seq_int_handler(void);
+extern void send_rms_timer_int_handler(void);
 
 //*****************************************************************************
 //
@@ -131,7 +132,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // GPIO Port H
     IntDefaultHandler,                      // UART2 Rx and Tx
     IntDefaultHandler,                      // SSI1 Rx and Tx
-    IntDefaultHandler,                      // Timer 3 subtimer A
+    send_rms_timer_int_handler,             // Timer 3 subtimer A
     IntDefaultHandler,                      // Timer 3 subtimer B
     IntDefaultHandler,                      // I2C1 Master and Slave
     IntDefaultHandler,                      // Quadrature Encoder 1
@@ -286,7 +287,6 @@ NmiSR(void)
 static void
 FaultISR(void)
 {
-    send_packet(0x99, 0, 0, 0, 0);
     //
     // Enter an infinite loop.
     //

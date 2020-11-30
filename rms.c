@@ -77,7 +77,7 @@ void adc_timer_init(){
     {
     }
     ROM_TimerConfigure(TIMER2_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PERIODIC);
-    ROM_TimerLoadSet(TIMER2_BASE, TIMER_A, ROM_SysCtlClockGet() / 400000 - 1);
+    ROM_TimerLoadSet(TIMER2_BASE, TIMER_A, ROM_SysCtlClockGet() / ADC_TIMER_FREQ - 1);
     ROM_TimerControlTrigger(TIMER2_BASE, TIMER_A, true);
     ROM_TimerControlStall(TIMER2_BASE, TIMER_A, true);
 }

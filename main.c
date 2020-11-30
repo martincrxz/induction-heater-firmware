@@ -36,13 +36,16 @@
 extern buffer_status_t g_BufferStatus[2];
 extern uint16_t g_ADC_Out1[ADC_SAMPLE_BUF_SIZE];
 extern uint16_t g_ADC_Out2[ADC_SAMPLE_BUF_SIZE];
-extern float g_voltageMidValue;
 
 #ifdef ENABLE_TEST
 void timer_0A_test_handler(void);
 #endif
 
+void send_rms_timer_init();
+void send_rms_timer_int_handler();
 static void quadraticSum(uint16_t*);
+static bool shouldSendRms = false;
+static unsigned char lastRmsValue[4] = {0,0,0,0};
 
 int main(void)
 {
@@ -151,7 +154,11 @@ void quadraticSum(uint16_t *samples) {
     } sum;
 
     uint32_t freqCount = get_freq_count();
-    uint32_t samplesInPeriod = freqCount * 400E3 / 50E6;
+
+    if (freqCount == 0)
+        return;
+
+    uint32_t samplesInPeriod = freqCount * ADC_TIMER_FREQ / ROM_SysCtlClockGet();
     float voltageMidValue = 0;
 
     // Calculate average value
@@ -170,7 +177,33 @@ void quadraticSum(uint16_t *samples) {
     }
     sum.flt /= samplesInPeriod;
 
-    send_packet(CURRENT_RMS_READING, sum.bytes[3], sum.bytes[2], sum.bytes[1], sum.bytes[0]);
+    lastRmsValue[0] = sum.bytes[0];
+    lastRmsValue[1] = sum.bytes[1];
+    lastRmsValue[2] = sum.bytes[2];
+    lastRmsValue[3] = sum.bytes[3];
+
+    shouldSendRms = true;
+}
+
+void send_rms_timer_init() {
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER3);
+    while(!ROM_SysCtlPeripheralReady(SYSCTL_PERIPH_TIMER3))
+    {
+    }
+    ROM_TimerConfigure(TIMER3_BASE, TIMER_CFG_PERIODIC);
+    ROM_TimerLoadSet(TIMER3_BASE, TIMER_A, ROM_SysCtlClockGet() / 10);
+    ROM_IntEnable(INT_TIMER3A);
+    ROM_TimerIntEnable(TIMER3_BASE, TIMER_TIMA_TIMEOUT);
+    ROM_TimerEnable(TIMER3_BASE, TIMER_A);
+}
+
+void send_rms_timer_int_handler() {
+    ROM_TimerIntClear(TIMER3_BASE, TIMER_TIMA_TIMEOUT);
+    if (!shouldSendRms)
+        return;
+
+    send_packet(CURRENT_RMS_READING, lastRmsValue[3], lastRmsValue[2], lastRmsValue[1], lastRmsValue[0]);
+    shouldSendRms = false;
 }
 
 #ifdef ENABLE_TEST
