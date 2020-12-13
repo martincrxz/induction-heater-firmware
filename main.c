@@ -116,6 +116,7 @@ int main(void)
 
 #ifdef ENABLE_CURRENT_MEASUREMENT
     adc_timer_start();
+    send_rms_timer_init();
 #endif
 
     while(1)

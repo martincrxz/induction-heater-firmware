@@ -68,6 +68,7 @@ void adc_init(){
     ROM_ADCSequenceEnable(ADC0_BASE, 0); // Sequencer 0 is enabled
     ROM_ADCIntClear(ADC0_BASE, 0); // Interrupt flag is cleared just in case
     ADCSequenceDMAEnable(ADC0_BASE, 0);
+    ROM_IntPrioritySet(INT_ADC0SS0, 0);
     ROM_IntEnable(INT_ADC0SS0); // ADC interrupt is enabled
 }
 

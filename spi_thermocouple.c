@@ -22,11 +22,6 @@
 #include "spi_thermocouple.h"
 #include "usb.h"
 
-// We use 32 bits variables because the API's functions are set up for that size
-static uint32_t ssi0_tx_data[3];
-static uint32_t ssi0_rx_data[3];
-static uint32_t ssi0_trash;
-
 void spi_thermocouple_init() {
 
     // Enable peripherals
@@ -53,7 +48,7 @@ void spi_thermocouple_init() {
     // Configure PA6 for fault interrupt (connected to Adafruit FLT)
     ROM_GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, GPIO_PIN_6);
     ROM_GPIOPadConfigSet(GPIO_PORTA_BASE, GPIO_PIN_6, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
-    ROM_GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_6, GPIO_FALLING_EDGE);
+    ROM_GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_6, GPIO_LOW_LEVEL);
     ROM_SysCtlDelay(3);
 
     // Configure PA7 for conversion ready interrupt (connected to Adafruit DRDY)
@@ -62,50 +57,22 @@ void spi_thermocouple_init() {
     ROM_GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_7, GPIO_FALLING_EDGE);
     ROM_SysCtlDelay(3);
 
-    // Clear the variables just in case
-    spi_thermocouple_clear();
-
     // Register the handler and enable the interrupt
     GPIOIntRegister(GPIO_PORTA_BASE, spi_thermocouple_int_handler);
     GPIOIntEnable(GPIO_PORTA_BASE, GPIO_INT_PIN_6 | GPIO_INT_PIN_7);
 
     //Set default configuration
-    ssi0_tx_data[0] = (MAX31856_CR0_REG | MAX31856_REG_WRITE) << 8;
-    ssi0_tx_data[0] |= 0x81;
-    ssi0_tx_data[1] = (MAX31856_CR1_REG | MAX31856_REG_WRITE) << 8;
-    ssi0_tx_data[1] |= 0x03;
+    uint32_t faultMaskValue = 0xFC;
+    uint32_t cr0Value = 0x91;
+    uint32_t cr1Value = 0x03;
 
-    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[0]);
-    while(ROM_SSIBusy(SSI0_BASE))
-    {
-    }
+    write_register(MAX31856_MASK_REG, faultMaskValue);
+    write_register(MAX31856_CR0_REG, cr0Value);
+    write_register(MAX31856_CR1_REG, cr1Value);
+    cr0Value = read_register(MAX31856_CR0_REG);
+    cr1Value = read_register(MAX31856_CR1_REG);
 
-    DELAY_MS(SPI_DATA_DELAY);
-
-    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[1]);
-    while(ROM_SSIBusy(SSI0_BASE))
-    {
-    }
-
-    DELAY_MS(SPI_DATA_DELAY);
-}
-
-void spi_thermocouple_clear() {
-
-    // I'm not sure if this function is even necessary
-
-    // Clear any remaining data
-    while(ROM_SSIDataGetNonBlocking(SSI0_BASE,  &ssi0_trash))
-    {
-    }
-
-    ssi0_tx_data[0] = 0;
-    ssi0_tx_data[1] = 0;
-    ssi0_tx_data[2] = 0;
-    ssi0_rx_data[0] = 0;
-    ssi0_rx_data[1] = 0;
-    ssi0_rx_data[2] = 0;
-
+    send_packet(THERMOCOUPLE_CONFIGURATION_ACKNOWLEDGE, cr0Value, cr1Value, 0x00, 0x00);
 }
 
 void spi_thermocouple_int_handler() {
@@ -114,160 +81,52 @@ void spi_thermocouple_int_handler() {
     GPIOIntClear(GPIO_PORTA_BASE, ui32Status);
 
     if(ui32Status & GPIO_INT_PIN_6){
-        // Handle fault
-        spi_thermocouple_read_flt();
         // Send fault status register via USB to the computer
         // See MAX31856 datasheet to parse in PC application
-        send_packet(THERMOCOUPLE_FAULT, ssi0_rx_data[0], 0x00, 0x00, 0x00);
+        send_packet(THERMOCOUPLE_FAULT, read_register(MAX31856_SR_REG), 0x00, 0x00, 0x00);
     }
 
     if(ui32Status & GPIO_INT_PIN_7){
-        // Handle conversion ready
-        spi_thermocouple_read_cj();
         // Send cold junction reading via USB to the computer
-        send_packet(COLD_JUNCTION_READING, ssi0_rx_data[0], ssi0_rx_data[1], 0x00, 0x00);
-        spi_thermocouple_read_tc();
+        send_packet(COLD_JUNCTION_READING,
+                    read_register(MAX31856_CJTH_REG),
+                    read_register(MAX31856_CJTL_REG),
+                    0x00,
+                    0x00);
+
         // Send temperature conversion reading via USB to the computer
-        send_packet(TEMPERATURE_READING, ssi0_rx_data[0], ssi0_rx_data[1], ssi0_rx_data[2], 0x00);
+        send_packet(TEMPERATURE_READING,
+                    read_register(MAX31856_LTCBH_REG),
+                    read_register(MAX31856_LTCBM_REG),
+                    read_register(MAX31856_LTCBL_REG),
+                    0x00);
     }
-
-}
-
-// Fault reading routine
-void spi_thermocouple_read_flt() {
-
-    // This will set up the register address in place to send to the MAX31856
-    // Notice that the first 32-N bits are ignored by hardware (in this case N=16)
-    ssi0_tx_data[0] = MAX31856_SR_REG << 8;
-
-    // Ask for SR register (Fault status register)
-    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[0]);
-    while(ROM_SSIBusy(SSI0_BASE))
-    {
-    }
-
-    // A delay is maybe needed here
-    DELAY_MS(SPI_DATA_DELAY);
-
-    // Receive SR register, only the first 8 bits will have valid data
-    ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[0]);
-
-    ssi0_rx_data[0] &= 0xFF;
-    ssi0_rx_data[1] &= 0x00;
-    ssi0_rx_data[2] &= 0x00;
-
-}
-
-// Cold junction reading routine
-void spi_thermocouple_read_cj() {
-
-    // This will set up the registers addresses in place to send to the MAX31856
-    // Notice that the first 32-N bits are ignored by hardware (in this case N=16)
-    ssi0_tx_data[0] = MAX31856_CJTH_REG << 8;
-    ssi0_tx_data[1] = MAX31856_CJTL_REG << 8;
-
-    // Ask for CJTH register
-    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[0]);
-    while(ROM_SSIBusy(SSI0_BASE))
-    {
-    }
-
-    // A delay is maybe needed here
-    DELAY_MS(SPI_DATA_DELAY);
-
-    // Receive CJTH register, only the first 8 bits will have valid data
-    ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[0]);
-
-    // Ask for CJTL register
-    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[1]);
-    while(ROM_SSIBusy(SSI0_BASE))
-    {
-    }
-
-    // A delay is maybe needed here
-    DELAY_MS(SPI_DATA_DELAY);
-
-    // Receive CJTL register, only the first 8 bits will have valid data
-    ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[1]);
-
-    // Clear everything but the first 8 bits, just in case
-    ssi0_rx_data[0] &= 0xFF;
-    ssi0_rx_data[1] &= 0xFF;
-    ssi0_rx_data[2] &= 0x00;
-}
-
-// Temperature conversion reading routine
-void spi_thermocouple_read_tc() {
-
-    // This will set up the registers addresses in place to send to the MAX31856
-    // Notice that the first 32-N bits are ignored by hardware (in this case N=16)
-    ssi0_tx_data[0] = MAX31856_LTCBH_REG << 8;
-    ssi0_tx_data[1] = MAX31856_LTCBM_REG << 8;
-    ssi0_tx_data[2] = MAX31856_LTCBL_REG << 8;
-
-    // Ask for LTCBH register
-    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[0]);
-    while(ROM_SSIBusy(SSI0_BASE))
-    {
-    }
-
-    // A delay is maybe needed here
-    DELAY_MS(SPI_DATA_DELAY);
-
-    // Receive LTCBH register, only the first 8 bits will have valid data
-    ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[0]);
-
-    // Ask for LTCBM register
-    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[1]);
-    while(ROM_SSIBusy(SSI0_BASE))
-    {
-    }
-
-    // A delay is maybe needed here
-    DELAY_MS(SPI_DATA_DELAY);
-
-    // Receive LTCBM register, only the first 8 bits will have valid data
-    ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[1]);
-
-    // Ask for LTCBL register
-    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[2]);
-    while(ROM_SSIBusy(SSI0_BASE))
-    {
-    }
-
-    // A delay is maybe needed here
-    DELAY_MS(SPI_DATA_DELAY);
-
-    // Receive LTCBL register, only the first 8 bits will have valid data
-    ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[2]);
-
-    // Clear everything but the first 8 bits, just in case
-    ssi0_rx_data[0] &= 0xFF;
-    ssi0_rx_data[1] &= 0xFF;
-    ssi0_rx_data[2] &= 0xFF;
 
 }
 
 void set_thermocouple_type(max31856_thermocoupletype_t type){
+    write_register(MAX31856_CR1_REG, type);
+}
 
-    ssi0_tx_data[0] = MAX31856_CR1_REG << 8;
-
-    // Ask for CR1 register
-    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[0]);
+void write_register(uint32_t address, uint32_t value) {
+    uint32_t tmp;
+    ROM_SSIDataPut(SSI0_BASE, ((MAX31856_REG_WRITE | address) << 8) | value);
     while(ROM_SSIBusy(SSI0_BASE))
     {
     }
+    while(ROM_SSIDataGetNonBlocking(SSI0_BASE,  &tmp))
+    {
+    }
+}
 
-    DELAY_MS(SPI_DATA_DELAY);
-
-    ROM_SSIDataGet(SSI0_BASE, &ssi0_rx_data[0]);
-
-    // Clear type bits, set corresponding bits and set write bit
-    ssi0_tx_data[0] = (ssi0_tx_data[0] & 0b0000) | type | (MAX31856_REG_WRITE << 8);
-
-    ROM_SSIDataPut(SSI0_BASE, ssi0_tx_data[0]);
+uint32_t read_register(uint32_t address) {
+    uint32_t value = 0;
+    ROM_SSIDataPut(SSI0_BASE, address << 8);
     while(ROM_SSIBusy(SSI0_BASE))
     {
     }
-
+    while(ROM_SSIDataGetNonBlocking(SSI0_BASE,  &value))
+    {
+    }
+    return value & 0xFF;
 }

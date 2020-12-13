@@ -5,3 +5,4 @@
 .launches/*
 .project
 .settings/*
+/Debug/
