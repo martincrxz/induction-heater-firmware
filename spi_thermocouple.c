@@ -18,6 +18,7 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/interrupt.h"
 #include "Adafruit_MAX31856.h"
+#include "driverlib/timer.h"
 
 #include "spi_thermocouple.h"
 #include "usb.h"
@@ -47,19 +48,25 @@ void spi_thermocouple_init() {
 
     // Configure PA6 for fault interrupt (connected to Adafruit FLT)
     ROM_GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, GPIO_PIN_6);
-    ROM_GPIOPadConfigSet(GPIO_PORTA_BASE, GPIO_PIN_6, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
-    ROM_GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_6, GPIO_LOW_LEVEL);
-    ROM_SysCtlDelay(3);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER4);
+    while(!ROM_SysCtlPeripheralReady(SYSCTL_PERIPH_TIMER4))
+    {
+    }
+    ROM_TimerConfigure(TIMER4_BASE, TIMER_CFG_PERIODIC);
+    ROM_TimerLoadSet(TIMER4_BASE, TIMER_A, ROM_SysCtlClockGet() - 1);
+    ROM_IntEnable(INT_TIMER4A);
+    ROM_TimerIntEnable(TIMER4_BASE, TIMER_TIMA_TIMEOUT);
+    ROM_TimerEnable(TIMER4_BASE, TIMER_A);
 
     // Configure PA7 for conversion ready interrupt (connected to Adafruit DRDY)
     ROM_GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, GPIO_PIN_7);
     ROM_GPIOPadConfigSet(GPIO_PORTA_BASE, GPIO_PIN_7, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
-    ROM_GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_7, GPIO_FALLING_EDGE);
+    ROM_GPIOIntTypeSet(GPIO_PORTA_BASE, GPIO_PIN_7, GPIO_LOW_LEVEL);
     ROM_SysCtlDelay(3);
 
     // Register the handler and enable the interrupt
     GPIOIntRegister(GPIO_PORTA_BASE, spi_thermocouple_int_handler);
-    GPIOIntEnable(GPIO_PORTA_BASE, GPIO_INT_PIN_6 | GPIO_INT_PIN_7);
+    GPIOIntEnable(GPIO_PORTA_BASE, GPIO_INT_PIN_7);
 
     //Set default configuration
     uint32_t faultMaskValue = 0xFC;
@@ -79,12 +86,6 @@ void spi_thermocouple_int_handler() {
 
     uint32_t ui32Status = GPIOIntStatus(GPIO_PORTA_BASE, true);
     GPIOIntClear(GPIO_PORTA_BASE, ui32Status);
-
-    if(ui32Status & GPIO_INT_PIN_6){
-        // Send fault status register via USB to the computer
-        // See MAX31856 datasheet to parse in PC application
-        send_packet(THERMOCOUPLE_FAULT, read_register(MAX31856_SR_REG), 0x00, 0x00, 0x00);
-    }
 
     if(ui32Status & GPIO_INT_PIN_7){
         // Send cold junction reading via USB to the computer
@@ -129,4 +130,14 @@ uint32_t read_register(uint32_t address) {
     {
     }
     return value & 0xFF;
+}
+
+void read_fault_timer_handler() {
+    ROM_TimerIntClear(TIMER4_BASE, TIMER_TIMA_TIMEOUT);
+    int32_t readValue = ROM_GPIOPinRead(GPIO_PORTA_BASE, GPIO_PIN_6);
+    if(!((readValue & GPIO_PIN_6)==GPIO_PIN_6)){
+        // Send fault status register via USB to the computer
+        // See MAX31856 datasheet to parse in PC application
+        send_packet(THERMOCOUPLE_FAULT, read_register(MAX31856_SR_REG), 0x00, 0x00, 0x00);
+    }
 }

@@ -65,6 +65,7 @@ extern void timer_capture_int_handler(void);
 extern void send_freq_timer_int_handler(void);
 extern void sample_seq_int_handler(void);
 extern void send_rms_timer_int_handler(void);
+extern void read_fault_timer_handler(void);
 
 //*****************************************************************************
 //
@@ -167,7 +168,7 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     IntDefaultHandler,                      // I2C2 Master and Slave
     IntDefaultHandler,                      // I2C3 Master and Slave
-    IntDefaultHandler,                      // Timer 4 subtimer A
+    read_fault_timer_handler,               // Timer 4 subtimer A
     IntDefaultHandler,                      // Timer 4 subtimer B
     0,                                      // Reserved
     0,                                      // Reserved
